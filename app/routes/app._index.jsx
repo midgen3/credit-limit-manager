@@ -16,7 +16,7 @@ import {
   Icon,
   Divider,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { authenticate } from "../shopify.server";
 
 const PENDING_ORDERS_QUERY = `

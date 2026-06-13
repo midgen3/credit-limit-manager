@@ -26,7 +26,7 @@ import {
   Toast,
   Frame,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 
