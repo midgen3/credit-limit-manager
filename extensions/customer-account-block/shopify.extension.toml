@@ -1,0 +1,6 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "theme"
+name = "Customer Credit Limit Block"
+handle = "customer-account-block"

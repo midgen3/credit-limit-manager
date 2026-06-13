@@ -1,0 +1,389 @@
+{% comment %}
+  Credit Limit Block
+  Displays the customer's credit limit, pending balance, and available credit.
+  Place this block on the customer account page in the theme editor.
+{% endcomment %}
+
+{% if customer %}
+  {%- assign credit_limit = customer.metafields.custom.credit_limit | times: 1.0 -%}
+
+  <div class="clm-credit-block" id="clm-credit-block">
+    <div class="clm-card">
+      <div class="clm-header">
+        <h2 class="clm-title">Credit Account</h2>
+        <div class="clm-status" id="clm-status">
+          <span class="clm-status-dot clm-status-loading"></span>
+          <span class="clm-status-text">Loading...</span>
+        </div>
+      </div>
+
+      <div class="clm-stats" id="clm-stats">
+        <div class="clm-stat">
+          <p class="clm-stat-label">Credit Limit</p>
+          <p class="clm-stat-value" id="clm-credit-limit">
+            {% if credit_limit > 0 %}
+              {{ credit_limit | money }}
+            {% else %}
+              —
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="clm-stat clm-stat-divider">
+          <p class="clm-stat-label">Pending Balance</p>
+          <p class="clm-stat-value clm-pending" id="clm-pending-total">
+            <span class="clm-loading-text">—</span>
+          </p>
+        </div>
+
+        <div class="clm-stat">
+          <p class="clm-stat-label">Available Credit</p>
+          <p class="clm-stat-value clm-available" id="clm-available-credit">
+            <span class="clm-loading-text">—</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="clm-progress-section" id="clm-progress-section" style="display: none;">
+        <div class="clm-progress-label">
+          <span>Credit Used</span>
+          <span id="clm-progress-pct">0%</span>
+        </div>
+        <div class="clm-progress-bar">
+          <div class="clm-progress-fill" id="clm-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="clm-message" id="clm-message" style="display: none;"></div>
+    </div>
+  </div>
+
+  <style>
+    .clm-credit-block {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 2rem 0;
+    }
+
+    .clm-card {
+      background: #ffffff;
+      border: 1px solid #e1e3e5;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .clm-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .clm-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #202223;
+      margin: 0;
+    }
+
+    .clm-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: #f4f6f8;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .clm-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .clm-status-loading { background: #8c9196; }
+    .clm-status-ok { background: #00a651; }
+    .clm-status-warning { background: #ffc453; }
+    .clm-status-critical { background: #d82c0d; }
+
+    .clm-status.status-ok {
+      background: #f1fff5;
+      color: #00622b;
+    }
+
+    .clm-status.status-warning {
+      background: #fff5ea;
+      color: #7a4f01;
+    }
+
+    .clm-status.status-critical {
+      background: #fff4f4;
+      color: #8a1500;
+    }
+
+    .clm-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .clm-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .clm-stat-divider {
+        border-top: 1px solid #e1e3e5;
+        border-bottom: 1px solid #e1e3e5;
+        padding: 12px 0;
+      }
+    }
+
+    .clm-stat {
+      text-align: center;
+    }
+
+    .clm-stat-label {
+      font-size: 0.8125rem;
+      color: #6d7175;
+      margin: 0 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+
+    .clm-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #202223;
+      margin: 0;
+    }
+
+    .clm-stat-value.clm-pending {
+      color: #916a00;
+    }
+
+    .clm-stat-value.clm-available.positive {
+      color: #00622b;
+    }
+
+    .clm-stat-value.clm-available.negative {
+      color: #8a1500;
+    }
+
+    .clm-progress-section {
+      margin-top: 8px;
+    }
+
+    .clm-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8125rem;
+      color: #6d7175;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .clm-progress-bar {
+      background: #e1e3e5;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .clm-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: #00a651;
+      transition: width 0.5s ease, background-color 0.3s ease;
+    }
+
+    .clm-progress-fill.warning {
+      background: #ffc453;
+    }
+
+    .clm-progress-fill.critical {
+      background: #d82c0d;
+    }
+
+    .clm-message {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .clm-message.success {
+      background: #f1fff5;
+      border: 1px solid #95c9a9;
+      color: #00622b;
+    }
+
+    .clm-message.warning {
+      background: #fff5ea;
+      border: 1px solid #f4c89a;
+      color: #7a4f01;
+    }
+
+    .clm-message.critical {
+      background: #fff4f4;
+      border: 1px solid #f4a09a;
+      color: #8a1500;
+    }
+
+    .clm-loading-text {
+      color: #8c9196;
+    }
+  </style>
+
+  <script>
+    (function() {
+      var block = document.getElementById('clm-credit-block');
+      if (!block) return;
+
+      var customerId = {{ customer.id | json }};
+      var proxyUrl = '/apps/credit-limit';
+
+      function formatMoney(amount, currency) {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currency || 'USD',
+        }).format(amount || 0);
+      }
+
+      function updateUI(data) {
+        var statusEl = document.getElementById('clm-status');
+        var statusDot = statusEl.querySelector('.clm-status-dot');
+        var statusText = statusEl.querySelector('.clm-status-text');
+        var pendingEl = document.getElementById('clm-pending-total');
+        var availableEl = document.getElementById('clm-available-credit');
+        var progressSection = document.getElementById('clm-progress-section');
+        var progressFill = document.getElementById('clm-progress-fill');
+        var progressPct = document.getElementById('clm-progress-pct');
+        var messageEl = document.getElementById('clm-message');
+
+        if (data.error) {
+          statusText.textContent = 'Unavailable';
+          statusDot.className = 'clm-status-dot clm-status-warning';
+          return;
+        }
+
+        var creditLimit = data.creditLimit || 0;
+        var pendingTotal = data.pendingTotal || 0;
+        var availableCredit = data.availableCredit || 0;
+        var currency = data.currency || 'USD';
+
+        // Update credit limit (may have been loaded from liquid already)
+        var limitEl = document.getElementById('clm-credit-limit');
+        if (limitEl) {
+          limitEl.textContent = creditLimit > 0 ? formatMoney(creditLimit, currency) : '—';
+        }
+
+        // Update pending total
+        if (pendingEl) {
+          pendingEl.textContent = formatMoney(pendingTotal, currency);
+        }
+
+        // Update available credit
+        if (availableEl) {
+          if (creditLimit > 0) {
+            availableEl.textContent = formatMoney(availableCredit, currency);
+            availableEl.classList.toggle('positive', availableCredit >= 0);
+            availableEl.classList.toggle('negative', availableCredit < 0);
+          } else {
+            availableEl.textContent = '—';
+          }
+        }
+
+        // Progress bar
+        if (creditLimit > 0 && progressSection) {
+          progressSection.style.display = 'block';
+          var pct = Math.min((pendingTotal / creditLimit) * 100, 100);
+          progressFill.style.width = pct + '%';
+          progressPct.textContent = Math.round(pct) + '%';
+
+          if (pct >= 100) {
+            progressFill.className = 'clm-progress-fill critical';
+          } else if (pct >= 80) {
+            progressFill.className = 'clm-progress-fill warning';
+          } else {
+            progressFill.className = 'clm-progress-fill';
+          }
+        }
+
+        // Status badge & message
+        if (!data.hasLimit) {
+          statusDot.className = 'clm-status-dot clm-status-loading';
+          statusText.textContent = 'No limit set';
+          statusEl.className = 'clm-status';
+        } else if (data.isOverLimit) {
+          statusDot.className = 'clm-status-dot clm-status-critical';
+          statusText.textContent = 'Over limit';
+          statusEl.className = 'clm-status status-critical';
+
+          messageEl.style.display = 'block';
+          messageEl.className = 'clm-message critical';
+          messageEl.textContent = 'Your pending balance exceeds your credit limit. Please make a payment to restore credit.';
+        } else if (creditLimit > 0 && pendingTotal > creditLimit * 0.8) {
+          statusDot.className = 'clm-status-dot clm-status-warning';
+          statusText.textContent = 'Near limit';
+          statusEl.className = 'clm-status status-warning';
+
+          messageEl.style.display = 'block';
+          messageEl.className = 'clm-message warning';
+          messageEl.textContent = 'You are approaching your credit limit. ' + formatMoney(availableCredit, currency) + ' remaining.';
+        } else {
+          statusDot.className = 'clm-status-dot clm-status-ok';
+          statusText.textContent = 'Good standing';
+          statusEl.className = 'clm-status status-ok';
+
+          if (creditLimit > 0) {
+            messageEl.style.display = 'block';
+            messageEl.className = 'clm-message success';
+            messageEl.textContent = 'You have ' + formatMoney(availableCredit, currency) + ' in available credit.';
+          }
+        }
+      }
+
+      // Fetch data from app proxy
+      fetch(proxyUrl + '?customer_id=' + customerId)
+        .then(function(res) { return res.json(); })
+        .then(function(data) { updateUI(data); })
+        .catch(function(err) {
+          console.error('Credit limit fetch error:', err);
+          var statusText = document.querySelector('#clm-status .clm-status-text');
+          if (statusText) statusText.textContent = 'Unavailable';
+        });
+    })();
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Credit Limit",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Credit Account"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_pending_orders",
+      "label": "Show pending order count",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "Credit Limit"
+    }
+  ]
+}
+{% endschema %}

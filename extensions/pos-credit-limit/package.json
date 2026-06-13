@@ -1,0 +1,16 @@
+{
+  "name": "pos-credit-limit",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "shopify app build --extension-only"
+  },
+  "dependencies": {
+    "@shopify/ui-extensions-react": "^2025.1.0",
+    "@shopify/ui-extensions": "^2025.1.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5"
+  }
+}

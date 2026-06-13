@@ -1,0 +1,10 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "ui_extension"
+name = "Customer Credit Block"
+handle = "customer-credit-block"
+
+[[extensions.targeting]]
+module = "./src/CustomerCreditBlock.jsx"
+target = "admin.customers.details.block.render"

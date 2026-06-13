@@ -1,0 +1,10 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "ui_extension"
+name = "Credit Limit Tile"
+handle = "pos-credit-limit"
+
+[[extensions.targeting]]
+module = "./src/CreditLimitTile.jsx"
+target = "pos.home.tile.render"

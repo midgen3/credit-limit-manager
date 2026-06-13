@@ -1,0 +1,40 @@
+name = "Credit Limit Manager"
+client_id = "3303df9aad230dd509c2f954c1cab191"
+application_url = "https://placeholder.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_customers,write_customers,read_orders,write_orders,unauthenticated_read_customers,unauthenticated_read_orders"
+
+[auth]
+redirect_urls = [
+  "https://placeholder.com/auth/callback",
+  "https://placeholder.com/auth/shopify/callback",
+  "https://placeholder.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-01"
+
+[[webhooks.subscriptions]]
+topics = ["customers/update"]
+uri = "/webhooks"
+
+[[webhooks.subscriptions]]
+topics = ["orders/create"]
+uri = "/webhooks"
+
+[[webhooks.subscriptions]]
+topics = ["orders/updated"]
+uri = "/webhooks"
+
+[pos]
+embedded = true
+
+[app_proxy]
+url = "https://placeholder.com/apps/credit-limit"
+subpath = "credit-limit"
+prefix = "apps"
+
+[build]
+include_config_on_deploy = true
