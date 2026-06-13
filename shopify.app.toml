@@ -4,7 +4,7 @@ application_url = "https://web-production-67b5f2.up.railway.app"
 embedded = true
 
 [access_scopes]
-scopes = "read_customers,write_customers,read_orders,write_orders,unauthenticated_read_customers,unauthenticated_read_orders"
+scopes = "read_customers,write_customers,read_orders,write_orders"
 
 [auth]
 redirect_urls = [
@@ -37,4 +37,3 @@ subpath = "credit-limit"
 prefix = "apps"
 
 [build]
-include_config_on_deploy = true

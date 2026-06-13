@@ -11,7 +11,6 @@ import {
   Stack,
   Icon,
   Badge,
-  Separator,
   Button,
 } from "@shopify/ui-extensions-react/point-of-sale";
 import { useState, useEffect, useCallback } from "react";
@@ -88,7 +87,7 @@ function CreditDetailScreen({ creditData, cartTotal, onBack }) {
             </Stack>
           </Section>
 
-          <Separator />
+          
 
           {/* Credit Summary */}
           <Section title="Credit Summary">
@@ -118,7 +117,7 @@ function CreditDetailScreen({ creditData, cartTotal, onBack }) {
                 </Text>
               </Stack>
 
-              <Separator />
+              
 
               <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
                 <Text variant="body" color="subdued">Total Exposure</Text>
@@ -331,4 +330,4 @@ function CreditLimitTile() {
   );
 }
 
-export default reactExtension("pos.home.tile.render", () => <CreditLimitTile />);
+export const posHomeTile = reactExtension("pos.home.tile.render", () => <CreditLimitTile />);

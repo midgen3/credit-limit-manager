@@ -1,6 +1,7 @@
-api_version = "2025-01"
+api_version = "2025-07"
 
 [[extensions]]
 type = "theme"
 name = "Customer Credit Limit Block"
 handle = "customer-account-block"
+uid = "73d247d3-7f53-473f-8b42-a47a6b721e9e"
