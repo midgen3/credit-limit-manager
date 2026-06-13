@@ -9,176 +9,67 @@ import {
   Section,
   Text,
   Stack,
-  Icon,
-  Badge,
-  Button,
 } from "@shopify/ui-extensions-react/point-of-sale";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+const APP_URL = "https://web-production-67b5f2.up.railway.app";
 
-function formatCurrency(amount, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(amount || 0);
+function fmt(amount, currency = "USD") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount || 0);
 }
 
-// ─── GraphQL Queries ─────────────────────────────────────────────────────────
-
-const CUSTOMER_CREDIT_QUERY = `
-  query getCustomerCredit($customerId: ID!) {
-    customer(id: $customerId) {
-      id
-      firstName
-      lastName
-      email
-      metafield(namespace: "custom", key: "credit_limit") {
-        value
-      }
-      orders(first: 250, query: "financial_status:pending") {
-        edges {
-          node {
-            id
-            name
-            totalPriceSet {
-              shopMoney {
-                amount
-                currencyCode
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-// ─── Detail Screen ───────────────────────────────────────────────────────────
-
-function CreditDetailScreen({ creditData, cartTotal, onBack }) {
-  const {
-    customerName,
-    creditLimit,
-    pendingTotal,
-    availableCredit,
-    currency,
-    isOverLimit,
-    hasLimit,
-    pendingOrders,
-  } = creditData;
-
-  const cartPlusPending = cartTotal + pendingTotal;
-  const remainingAfterCart = creditLimit - cartPlusPending;
+function CreditDetailScreen({ data, cartTotal }) {
+  const { customerName, creditLimit, pendingTotal, hasLimit } = data;
+  const totalExposure = pendingTotal + cartTotal;
+  const available = creditLimit - totalExposure;
+  const isOver = hasLimit && totalExposure > creditLimit;
 
   return (
-    <Screen name="CreditDetails" title="Credit Limit Details">
+    <Screen name="Details" title="Credit Limit">
       <ScrollView>
         <Stack direction="vertical" spacing="base" padding="base">
-          {/* Status Banner */}
-          <Section>
-            <Stack direction="vertical" spacing="tight" alignment="center" padding="base">
-              <Text variant="headingLarge" color={isOverLimit ? "critical" : "success"}>
-                {isOverLimit ? "⛔ Over Credit Limit" : "✓ Within Credit Limit"}
-              </Text>
-              <Text variant="body" color="subdued">
-                {customerName}
-              </Text>
-            </Stack>
+          <Section title="Customer">
+            <Text variant="body">{customerName}</Text>
           </Section>
 
-          
-
-          {/* Credit Summary */}
           <Section title="Credit Summary">
             <Stack direction="vertical" spacing="tight">
-              <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
+              <Stack direction="horizontal" alignment="spaceBetween">
                 <Text variant="body" color="subdued">Credit Limit</Text>
                 <Text variant="body" fontWeight="semibold">
-                  {hasLimit ? formatCurrency(creditLimit, currency) : "Not set"}
+                  {hasLimit ? fmt(creditLimit) : "Not set"}
                 </Text>
               </Stack>
-
-              <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
+              <Stack direction="horizontal" alignment="spaceBetween">
                 <Text variant="body" color="subdued">Pending Orders</Text>
-                <Text
-                  variant="body"
-                  fontWeight="semibold"
-                  color={pendingTotal > 0 ? "warning" : "default"}
-                >
-                  {formatCurrency(pendingTotal, currency)}
-                </Text>
+                <Text variant="body" fontWeight="semibold">{fmt(pendingTotal)}</Text>
               </Stack>
-
-              <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
+              <Stack direction="horizontal" alignment="spaceBetween">
                 <Text variant="body" color="subdued">Current Cart</Text>
-                <Text variant="body" fontWeight="semibold">
-                  {formatCurrency(cartTotal, currency)}
-                </Text>
+                <Text variant="body" fontWeight="semibold">{fmt(cartTotal)}</Text>
               </Stack>
-
-              
-
-              <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
+              <Stack direction="horizontal" alignment="spaceBetween">
                 <Text variant="body" color="subdued">Total Exposure</Text>
-                <Text
-                  variant="body"
-                  fontWeight="bold"
-                  color={isOverLimit ? "critical" : "default"}
-                >
-                  {formatCurrency(cartPlusPending, currency)}
+                <Text variant="body" fontWeight="bold" color={isOver ? "critical" : "default"}>
+                  {fmt(totalExposure)}
                 </Text>
               </Stack>
-
               {hasLimit && (
-                <Stack direction="horizontal" spacing="base" alignment="spaceBetween">
-                  <Text variant="body" color="subdued">Available After Cart</Text>
-                  <Text
-                    variant="bodyLarge"
-                    fontWeight="bold"
-                    color={remainingAfterCart < 0 ? "critical" : "success"}
-                  >
-                    {formatCurrency(remainingAfterCart, currency)}
+                <Stack direction="horizontal" alignment="spaceBetween">
+                  <Text variant="body" color="subdued">Available Credit</Text>
+                  <Text variant="bodyLarge" fontWeight="bold" color={available < 0 ? "critical" : "success"}>
+                    {fmt(available)}
                   </Text>
                 </Stack>
               )}
             </Stack>
           </Section>
 
-          {/* Pending Orders Detail */}
-          {pendingOrders && pendingOrders.length > 0 && (
-            <Section title={`Pending Orders (${pendingOrders.length})`}>
-              <Stack direction="vertical" spacing="tight">
-                {pendingOrders.map((order) => (
-                  <Stack
-                    key={order.id}
-                    direction="horizontal"
-                    spacing="base"
-                    alignment="spaceBetween"
-                  >
-                    <Text variant="body" color="subdued">
-                      {order.name}
-                    </Text>
-                    <Text variant="body">
-                      {formatCurrency(order.amount, currency)}
-                    </Text>
-                  </Stack>
-                ))}
-              </Stack>
-            </Section>
-          )}
-
-          {/* No limit set message */}
           {!hasLimit && (
             <Section>
-              <Stack direction="vertical" spacing="tight" padding="base">
-                <Text variant="body" color="subdued" alignment="center">
-                  No credit limit has been set for this customer.
-                </Text>
-                <Text variant="body" color="subdued" alignment="center">
-                  Set a credit limit in the Shopify Admin under the customer profile.
-                </Text>
-              </Stack>
+              <Text variant="body" color="subdued">
+                No credit limit set. Set one in the Shopify Admin customer profile.
+              </Text>
             </Section>
           )}
         </Stack>
@@ -187,147 +78,102 @@ function CreditDetailScreen({ creditData, cartTotal, onBack }) {
   );
 }
 
-// ─── Main Tile Extension ─────────────────────────────────────────────────────
-
 function CreditLimitTile() {
   const api = useApi();
   const cart = useCartSubscription();
 
   const [creditData, setCreditData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const customer = cart?.customer;
   const cartTotal = cart?.totalPrice?.amount
     ? parseFloat(cart.totalPrice.amount)
     : 0;
-  const currency = cart?.totalPrice?.currencyCode || "USD";
 
-  const fetchCreditData = useCallback(
-    async (customerId) => {
-      if (!customerId) return;
-      setLoading(true);
-      setError(null);
+  useEffect(() => {
+    if (!customer?.id) {
+      setCreditData(null);
+      return;
+    }
 
-      try {
-        const response = await api.query(CUSTOMER_CREDIT_QUERY, {
-          variables: {
-            customerId: `gid://shopify/Customer/${customerId}`,
-          },
-        });
+    setLoading(true);
 
-        const customerData = response?.data?.customer;
-        if (!customerData) {
-          throw new Error("Customer data not found");
-        }
-
-        const creditLimit = parseFloat(customerData.metafield?.value || "0");
-        const pendingOrders =
-          customerData.orders?.edges?.map(({ node }) => ({
-            id: node.id,
-            name: node.name,
-            amount: parseFloat(node.totalPriceSet.shopMoney.amount),
-          })) || [];
-        const pendingTotal = pendingOrders.reduce(
-          (sum, o) => sum + o.amount,
-          0
-        );
-        const availableCredit = creditLimit - pendingTotal;
-        const totalExposure = pendingTotal + cartTotal;
-        const isOverLimit = creditLimit > 0 && totalExposure > creditLimit;
-
+    // Fetch credit data from our app proxy backend
+    api.session
+      .getSessionToken()
+      .then((token) =>
+        fetch(`${APP_URL}/apps/credit-limit?customer_id=${customer.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      )
+      .then((r) => r.json())
+      .then((json) => {
         setCreditData({
           customerName:
-            `${customerData.firstName || ""} ${customerData.lastName || ""}`.trim() ||
-            customerData.email ||
+            [customer.firstName, customer.lastName].filter(Boolean).join(" ") ||
+            customer.email ||
             "Customer",
-          creditLimit,
-          pendingTotal,
-          pendingOrders,
-          availableCredit,
-          currency,
-          isOverLimit,
-          hasLimit: creditLimit > 0,
+          creditLimit: parseFloat(json.credit_limit || 0),
+          pendingTotal: parseFloat(json.pending_total || 0),
+          hasLimit: parseFloat(json.credit_limit || 0) > 0,
         });
-      } catch (err) {
-        console.error("Credit limit fetch error:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [cartTotal, currency, api]
-  );
-
-  // Re-fetch when customer or cart changes
-  useEffect(() => {
-    if (customer?.id) {
-      fetchCreditData(customer.id);
-    } else {
-      setCreditData(null);
-    }
+      })
+      .catch(() => {
+        // If proxy fails, show tile without data
+        setCreditData({
+          customerName:
+            [customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Customer",
+          creditLimit: 0,
+          pendingTotal: 0,
+          hasLimit: false,
+        });
+      })
+      .finally(() => setLoading(false));
   }, [customer?.id, cartTotal]);
 
-  // Determine tile appearance
-  let tileTitle = "Credit Limit";
-  let tileSubtitle = "No customer";
-  let tileColor = "default";
+  // Tile appearance
+  let subtitle = "Add a customer";
+  let color = "default";
+  let enabled = false;
 
-  if (loading) {
-    tileSubtitle = "Checking...";
-  } else if (error) {
-    tileSubtitle = "Error loading";
-    tileColor = "warning";
-  } else if (!customer) {
-    tileSubtitle = "Add a customer";
-  } else if (creditData) {
-    if (!creditData.hasLimit) {
-      tileSubtitle = "No limit set";
-    } else {
-      const totalExposure = creditData.pendingTotal + cartTotal;
-      const isOver = totalExposure > creditData.creditLimit;
-      tileColor = isOver ? "critical" : "success";
-      tileSubtitle = isOver
-        ? `Over by ${formatCurrency(totalExposure - creditData.creditLimit, currency)}`
-        : `${formatCurrency(creditData.creditLimit - totalExposure, currency)} available`;
+  if (customer) {
+    if (loading) {
+      subtitle = "Checking...";
+      enabled = false;
+    } else if (creditData) {
+      enabled = true;
+      if (!creditData.hasLimit) {
+        subtitle = "No limit set";
+      } else {
+        const totalExposure = creditData.pendingTotal + cartTotal;
+        const isOver = totalExposure > creditData.creditLimit;
+        color = isOver ? "critical" : "success";
+        subtitle = isOver
+          ? `Over by ${fmt(totalExposure - creditData.creditLimit)}`
+          : `${fmt(creditData.creditLimit - totalExposure)} available`;
+      }
     }
-  }
-
-  if (!customer) {
-    return (
-      <Tile
-        title={tileTitle}
-        subtitle={tileSubtitle}
-        enabled={false}
-      />
-    );
   }
 
   return (
     <Navigator>
       <Screen name="Tile" title="Credit Limit">
         <Tile
-          title={tileTitle}
-          subtitle={tileSubtitle}
-          color={tileColor}
-          enabled={!!creditData}
-          onPress={() => {
-            if (creditData) {
-              api.navigation.navigate("CreditDetails");
-            }
-          }}
+          title="Credit Limit"
+          subtitle={subtitle}
+          color={color}
+          enabled={enabled}
+          onPress={() => api.navigation.navigate("Details")}
         />
       </Screen>
-
       {creditData && (
-        <CreditDetailScreen
-          creditData={creditData}
-          cartTotal={cartTotal}
-          onBack={() => api.navigation.navigate("Tile")}
-        />
+        <CreditDetailScreen data={creditData} cartTotal={cartTotal} />
       )}
     </Navigator>
   );
 }
 
-export const posHomeTile = reactExtension("pos.home.tile.render", () => <CreditLimitTile />);
+export const posHomeTile = reactExtension(
+  "pos.home.tile.render",
+  () => <CreditLimitTile />
+);
