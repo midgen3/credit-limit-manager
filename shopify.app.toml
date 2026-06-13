@@ -1,6 +1,6 @@
 name = "Credit Limit Manager"
 client_id = "3303df9aad230dd509c2f954c1cab191"
-application_url = "https://placeholder.com"
+application_url = "https://web-production-67b5f2.up.railway.app"
 embedded = true
 
 [access_scopes]
@@ -8,9 +8,9 @@ scopes = "read_customers,write_customers,read_orders,write_orders,unauthenticate
 
 [auth]
 redirect_urls = [
-  "https://placeholder.com/auth/callback",
-  "https://placeholder.com/auth/shopify/callback",
-  "https://placeholder.com/api/auth/callback"
+  "https://web-production-67b5f2.up.railway.app/auth/callback",
+  "https://web-production-67b5f2.up.railway.app/auth/shopify/callback",
+  "https://web-production-67b5f2.up.railway.app/api/auth/callback"
 ]
 
 [webhooks]
@@ -32,7 +32,7 @@ uri = "/webhooks"
 embedded = true
 
 [app_proxy]
-url = "https://placeholder.com/apps/credit-limit"
+url = "https://web-production-67b5f2.up.railway.app/apps/credit-limit"
 subpath = "credit-limit"
 prefix = "apps"
 
