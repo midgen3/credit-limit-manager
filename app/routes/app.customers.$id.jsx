@@ -18,7 +18,6 @@ import {
   Toast,
   Box,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 
@@ -211,7 +210,6 @@ export default function CustomerDetail() {
         title={customerName}
         subtitle={customer.email}
       >
-        <TitleBar title={customerName} />
         <BlockStack gap="500">
           {isOverLimit && (
             <Banner tone="critical" title="Customer is over credit limit">

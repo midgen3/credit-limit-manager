@@ -16,7 +16,6 @@ import {
   Icon,
   Divider,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { authenticate } from "../shopify.server";
 
 const PENDING_ORDERS_QUERY = `
@@ -166,7 +165,6 @@ export default function Index() {
 
   return (
     <Page>
-      <TitleBar title="Credit Limit Manager" />
       <BlockStack gap="500">
         {overdueCustomers.length > 0 && (
           <Banner

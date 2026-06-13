@@ -17,7 +17,6 @@ import {
   List,
   Link,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 
@@ -159,7 +158,6 @@ export default function Settings() {
   return (
     <Frame>
       <Page>
-        <TitleBar title="App Settings" />
         <BlockStack gap="500">
           {error && (
             <Banner tone="critical" title="Error">

@@ -26,7 +26,6 @@ import {
   Toast,
   Frame,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/shopify-app-remix/react";
 import { useState, useCallback } from "react";
 import { authenticate } from "../shopify.server";
 
@@ -276,7 +275,6 @@ export default function Customers() {
   return (
     <Frame>
       <Page>
-        <TitleBar title="Customer Credit Limits" />
         <BlockStack gap="500">
           {error && (
             <Banner tone="critical" title="Error loading customers">
