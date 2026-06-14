@@ -38,11 +38,10 @@ function CreditLimitModal() {
 
     api.session
       .getSessionToken()
-      .then((token) =>
-        fetch(`${POS_API}?customer_id=${customer.id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
-      )
+      .then((token) => {
+        const url = `${POS_API}?customer_id=${customer.id}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+        return fetch(url);
+      })
       .then((r) => r.json())
       .then((json) => {
         if (json.error) {
