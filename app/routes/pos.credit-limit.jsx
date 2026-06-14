@@ -70,7 +70,11 @@ export const loader = async ({ request }) => {
   } catch (error) {
     console.error("POS credit-limit error:", error);
     return cors(
-      json({ error: "Failed to fetch credit data" }, { status: 500 })
+      json({
+        error: "Failed to fetch credit data",
+        detail: error?.message || String(error),
+        shop,
+      }, { status: 500 })
     );
   }
 };

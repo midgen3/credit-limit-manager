@@ -45,12 +45,16 @@ function CreditLimitModal() {
       )
       .then((r) => r.json())
       .then((json) => {
+        if (json.error) {
+          setError(`${json.error}: ${json.detail || ""} (shop: ${json.shop || "?"})`);
+          return;
+        }
         setCreditData({
           creditLimit: parseFloat(json.credit_limit || 0),
           pendingTotal: parseFloat(json.pending_total || 0),
         });
       })
-      .catch(() => setError("Failed to load credit data"))
+      .catch((e) => setError(`Fetch failed: ${e?.message || e}`))
       .finally(() => setLoading(false));
   }, [customer?.id]);
 
