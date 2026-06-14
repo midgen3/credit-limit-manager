@@ -13,7 +13,7 @@ import {
 import { useState, useEffect } from "react";
 
 const APP_URL = "https://web-production-67b5f2.up.railway.app";
-const POS_API = `${APP_URL}/pos/credit-limit`;
+const POS_API = `${APP_URL}/pos-credit-limit`;
 
 function fmt(amount) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount || 0);
