@@ -6,7 +6,6 @@ import {
   ScrollView,
   Stack,
   Text,
-  Button,
   Banner,
   Section,
 } from "@shopify/ui-extensions-react/point-of-sale";
@@ -119,7 +118,6 @@ function CreditLimitModal() {
             </Stack>
           )}
 
-          <Button title="Close" onPress={() => api.action.closeModal()} />
         </Stack>
       </ScrollView>
     </Screen>
