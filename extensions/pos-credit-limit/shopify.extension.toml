@@ -9,3 +9,7 @@ uid = "f3453e88-081b-4ef8-b8fd-e55ed6e94779"
 [[extensions.targeting]]
 module = "./src/CreditLimitTile.jsx"
 target = "pos.home.tile.render"
+
+[[extensions.targeting]]
+module = "./src/CreditLimitModal.jsx"
+target = "pos.home.modal.render"
