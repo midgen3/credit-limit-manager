@@ -1,5 +1,11 @@
 import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import { authenticate, unauthenticated } from "../shopify.server";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
 const CUSTOMER_CREDIT_QUERY = `
   query getCustomerCredit($customerId: ID!) {
@@ -17,10 +23,7 @@ const CUSTOMER_CREDIT_QUERY = `
             id
             name
             totalPriceSet {
-              shopMoney {
-                amount
-                currencyCode
-              }
+              shopMoney { amount currencyCode }
             }
           }
         }
@@ -29,13 +32,74 @@ const CUSTOMER_CREDIT_QUERY = `
   }
 `;
 
-export const loader = async ({ request }) => {
+function buildResponse(customer, extraHeaders = {}) {
+  const creditLimit = parseFloat(customer.metafield?.value || "0");
+  const pendingOrders = customer.orders?.edges?.map(({ node }) => node) || [];
+  const pendingTotal = pendingOrders.reduce(
+    (sum, o) => sum + parseFloat(o.totalPriceSet.shopMoney.amount),
+    0
+  );
+  return {
+    credit_limit: creditLimit,
+    pending_total: pendingTotal,
+    available_credit: creditLimit - pendingTotal,
+    has_limit: creditLimit > 0,
+    // legacy fields for app proxy callers
+    creditLimit,
+    pendingTotal,
+    availableCredit: creditLimit - pendingTotal,
+    isOverLimit: creditLimit > 0 && pendingTotal > creditLimit,
+    hasLimit: creditLimit > 0,
+    customer: {
+      id: customer.id,
+      name: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
+      email: customer.email,
+    },
+  };
+}
+
+// ── POS path: token passed as query param ────────────────────────────────────
+async function handlePOSRequest(request, rawCustomerId) {
+  const url = new URL(request.url);
+  const tokenParam = url.searchParams.get("token");
+
+  // Inject token into Authorization header for authenticate.public.pos
+  const headers = new Headers(request.headers);
+  if (tokenParam) headers.set("Authorization", `Bearer ${tokenParam}`);
+  const modifiedRequest = new Request(request.url, {
+    method: request.method,
+    headers,
+  });
+
+  const { sessionToken, cors } = await authenticate.public.pos(modifiedRequest);
+
+  const customerId = rawCustomerId.startsWith("gid://")
+    ? rawCustomerId
+    : `gid://shopify/Customer/${rawCustomerId}`;
+
+  const shop = sessionToken.dest.replace("https://", "");
+  const { admin } = await unauthenticated.admin(shop);
+
+  const response = await admin.graphql(CUSTOMER_CREDIT_QUERY, {
+    variables: { customerId },
+  });
+  const data = await response.json();
+  const customer = data.data?.customer;
+
+  if (!customer) {
+    return cors(json({ error: "Customer not found" }, { status: 404 }));
+  }
+
+  return cors(json(buildResponse(customer)));
+}
+
+// ── App proxy path: Shopify HMAC-signed request ──────────────────────────────
+async function handleAppProxyRequest(request) {
   const { admin, liquid } = await authenticate.public.appProxy(request);
   const url = new URL(request.url);
   const customerId = url.searchParams.get("customer_id");
   const loggedInCustomerId = liquid?.customer_id;
 
-  // Use the logged-in customer ID if no explicit one provided (security)
   const targetCustomerId = loggedInCustomerId
     ? `gid://shopify/Customer/${loggedInCustomerId}`
     : customerId
@@ -43,79 +107,51 @@ export const loader = async ({ request }) => {
     : null;
 
   if (!targetCustomerId) {
-    return json(
-      { error: "No customer ID provided" },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    );
+    return json({ error: "No customer ID provided" }, { status: 400 });
   }
 
+  const response = await admin.graphql(CUSTOMER_CREDIT_QUERY, {
+    variables: { customerId: targetCustomerId },
+  });
+  const data = await response.json();
+  const customer = data.data?.customer;
+
+  if (!customer) {
+    return json({ error: "Customer not found" }, { status: 404 });
+  }
+
+  return json(buildResponse(customer), {
+    headers: { "Cache-Control": "no-cache" },
+  });
+}
+
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  const isPOSRequest = !!url.searchParams.get("token");
+
   try {
-    const response = await admin.graphql(CUSTOMER_CREDIT_QUERY, {
-      variables: { customerId: targetCustomerId },
-    });
-    const data = await response.json();
-    const customer = data.data?.customer;
-
-    if (!customer) {
-      return json(
-        { error: "Customer not found" },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-
-    const creditLimit = parseFloat(customer.metafield?.value || "0");
-    const pendingOrders = customer.orders?.edges?.map(({ node }) => node) || [];
-    const pendingTotal = pendingOrders.reduce(
-      (sum, o) => sum + parseFloat(o.totalPriceSet.shopMoney.amount),
-      0
-    );
-    const availableCredit = creditLimit - pendingTotal;
-    const currency = pendingOrders[0]?.totalPriceSet?.shopMoney?.currencyCode || "USD";
-
-    return json(
-      {
-        customer: {
-          id: customer.id,
-          name: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
-          email: customer.email,
-        },
-        creditLimit,
-        pendingTotal,
-        availableCredit,
-        currency,
-        pendingOrders: pendingOrders.map((o) => ({
-          id: o.id,
-          name: o.name,
-          amount: parseFloat(o.totalPriceSet.shopMoney.amount),
-        })),
-        isOverLimit: creditLimit > 0 && pendingTotal > creditLimit,
-        hasLimit: creditLimit > 0,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
-        },
+    if (isPOSRequest) {
+      const rawCustomerId = url.searchParams.get("customer_id");
+      if (!rawCustomerId) {
+        return new Response(
+          JSON.stringify({ error: "No customer_id provided" }),
+          { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        );
       }
-    );
+      return await handlePOSRequest(request, rawCustomerId);
+    } else {
+      return await handleAppProxyRequest(request);
+    }
   } catch (error) {
-    console.error("Proxy error:", error);
-    return json(
-      { error: "Failed to fetch credit data" },
+    console.error("Proxy/POS error:", error?.message || error);
+    return new Response(
+      JSON.stringify({
+        error: "Request failed",
+        detail: error?.message || String(error),
+      }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       }
     );
   }
