@@ -11,8 +11,7 @@ import {
 } from "@shopify/ui-extensions-react/point-of-sale";
 import { useState, useEffect } from "react";
 
-const APP_URL = "https://web-production-67b5f2.up.railway.app";
-const POS_API = `${APP_URL}/proxy`;
+const PROXY_URL = "https://mgenius3.myshopify.com/apps/credit-limit";
 
 function fmt(amount) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount || 0);
@@ -23,36 +22,34 @@ function CreditLimitModal() {
   const cart = useCartSubscription();
 
   const [creditData, setCreditData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const customer = cart?.customer;
   const cartTotal = cart?.totalPrice?.amount ? parseFloat(cart.totalPrice.amount) : 0;
 
   useEffect(() => {
-    if (!customer?.id) return;
+    if (!customer?.id) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    api.session
-      .getSessionToken()
-      .then((token) => {
-        const url = `${POS_API}?customer_id=${customer.id}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-        return fetch(url);
-      })
+    const numericId = String(customer.id).includes("/")
+      ? String(customer.id).split("/").pop()
+      : String(customer.id);
+
+    fetch(`${PROXY_URL}?customer_id=${numericId}`)
       .then((r) => r.json())
       .then((json) => {
-        if (json.error) {
-          setError(`${json.error}: ${json.detail || ""} (shop: ${json.shop || "?"})`);
-          return;
-        }
-        setCreditData({
-          creditLimit: parseFloat(json.credit_limit || 0),
-          pendingTotal: parseFloat(json.pending_total || 0),
-        });
+        if (json.error) { setError(json.error); return; }
+        const limit = parseFloat(json.credit_limit || json.creditLimit || 0);
+        const pending = parseFloat(json.pending_total || json.pendingTotal || 0);
+        setCreditData({ creditLimit: limit, pendingTotal: pending });
       })
-      .catch((e) => setError(`Fetch failed: ${e?.message || e}`))
+      .catch((e) => setError(`Network error: ${e?.message || e}`))
       .finally(() => setLoading(false));
   }, [customer?.id]);
 
@@ -66,16 +63,9 @@ function CreditLimitModal() {
     <Screen title="Credit Limit" name="CreditLimitScreen">
       <ScrollView>
         <Stack direction="block" gap="base" paddingBlock="base" paddingInline="base">
-          <Banner
-            title={error || ""}
-            variant="error"
-            visible={!!error}
-            hideAction
-          />
+          <Banner title={error || ""} variant="error" visible={!!error} hideAction />
 
-          {!customer && (
-            <Text>No customer added to this cart.</Text>
-          )}
+          {!customer && <Text>No customer added to this cart.</Text>}
 
           {customer && (
             <Stack direction="block" gap="base">
@@ -88,9 +78,7 @@ function CreditLimitModal() {
               ) : (
                 <Stack direction="block" gap="base">
                   <Section title="Credit Limit">
-                    <Text>
-                      {creditLimit > 0 ? fmt(creditLimit) : "No limit set"}
-                    </Text>
+                    <Text>{creditLimit > 0 ? fmt(creditLimit) : "No limit set"}</Text>
                   </Section>
 
                   <Section title="Pending Orders">
@@ -117,7 +105,6 @@ function CreditLimitModal() {
               )}
             </Stack>
           )}
-
         </Stack>
       </ScrollView>
     </Screen>

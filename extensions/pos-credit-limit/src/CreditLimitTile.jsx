@@ -1,22 +1,19 @@
 import {
   reactExtension,
-  useApi,
   useCartSubscription,
   Tile,
 } from "@shopify/ui-extensions-react/point-of-sale";
 import { useState, useEffect } from "react";
 
-const APP_URL = "https://web-production-67b5f2.up.railway.app";
-const POS_API = `${APP_URL}/proxy`;
+// App proxy URL — Shopify signs and forwards this to Railway, no CORS issues
+const PROXY_URL = "https://mgenius3.myshopify.com/apps/credit-limit";
 
 function fmt(amount) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount || 0);
 }
 
 function CreditLimitTile() {
-  const api = useApi();
   const cart = useCartSubscription();
-
   const [creditData, setCreditData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,19 +28,17 @@ function CreditLimitTile() {
 
     setLoading(true);
 
-    api.session
-      .getSessionToken()
-      .then((token) => {
-        const url = `${POS_API}?customer_id=${customer.id}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
-        return fetch(url);
-      })
+    // Extract numeric ID from GID if needed
+    const numericId = String(customer.id).includes("/")
+      ? String(customer.id).split("/").pop()
+      : String(customer.id);
+
+    fetch(`${PROXY_URL}?customer_id=${numericId}`)
       .then((r) => r.json())
       .then((json) => {
-        setCreditData({
-          creditLimit: parseFloat(json.credit_limit || 0),
-          pendingTotal: parseFloat(json.pending_total || 0),
-          hasLimit: parseFloat(json.credit_limit || 0) > 0,
-        });
+        const limit = parseFloat(json.credit_limit || json.creditLimit || 0);
+        const pending = parseFloat(json.pending_total || json.pendingTotal || 0);
+        setCreditData({ creditLimit: limit, pendingTotal: pending, hasLimit: limit > 0 });
       })
       .catch(() => {
         setCreditData({ creditLimit: 0, pendingTotal: 0, hasLimit: false });
@@ -79,7 +74,7 @@ function CreditLimitTile() {
       subtitle={subtitle}
       color={color}
       enabled={enabled}
-      onPress={() => api.action.presentModal()}
+      onPress={() => {}}
     />
   );
 }
